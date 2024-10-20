@@ -1,13 +1,31 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import lingo.dict_types
+import Qt.labs.qmlmodels
+import lingo
 Item {
     required property Wrapper wrapper
 
+    ToolBar {
+        id: toolbar
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        height: 50
+        RowLayout{
+            anchors.fill: parent
+            Label {
+                text: "HALLO"
+                elide: Label.ElideRight
+                // horizontalAlignment: Qt.AlignHCenter
+                verticalAlignment: Qt.AlignVCenter
+            }
+        }
+    }
+
     TabBar {
         id: tabbar
-        anchors.top: parent.top
+        anchors.top: toolbar.botttom
         anchors.left: parent.left
         anchors.right: parent.right
         height: 50
@@ -20,59 +38,51 @@ Item {
     }
 
     Component {
-        id: wordclass_collection
-        ColumnLayout {
-            id: root_layout
-            width: parent.width
-            spacing: 5
-            Repeater {
-                model: target_model.length
-                Rectangle {
-                    required property int index
-                    color: "#41b5d9"
+        id: wordclass_delegate
+        Rectangle {
+            required property wordclass_t modelData
+            color: "#41b5d9"
+            Layout.fillWidth: true
+            Layout.bottomMargin: 5
+            Layout.leftMargin: 5
+            Layout.rightMargin: 5
+            radius: 8
+            implicitHeight: childrenRect.height
+            implicitWidth: childrenRect.width
+            ColumnLayout {
+                width: parent.width
+                Label {
+                    text: modelData.attribute
                     Layout.fillWidth: true
-                    Layout.bottomMargin: 5
-                    Layout.leftMargin: 5
-                    Layout.rightMargin: 5
-                    radius: 8
-                    implicitHeight: childrenRect.height
-                    implicitWidth: childrenRect.width
-                    ColumnLayout {
-                        width: parent.width
-                        Label {
-                            text: target_model[index].attribute
-                            Layout.fillWidth: true
-                            padding: 9
+                    padding: 9
+                }
+                ColumnLayout {
+                    width: parent.width
+                    spacing: 5
+                    Repeater {
+                        function wordclass_determine_delegate() {
+                            var children_delegate = modelData.determine_delegate()
+                            if (children_delegate === DelegateEnum.Category)
+                                return modelData.categories
+                            else if (children_delegate === DelegateEnum.Definition)
+                                return modelData.shortcut_definitions()
+                            else if (children_delegate === DelegateEnum.Phrase)
+                                return modelData.shortcut_phrases()
                         }
-                        Loader {
-                            id: wordclass_sub_loader
-                            property var target_model
-                            readonly property var sub: parent.target_model[index]
-                            function determine_model () {
-                                if (wordclass_sub_loader.sourceComponent === category_collection)
-                                    return sub.get_category_value()
-                                else if (wordclass_sub_loader.sourceComponent === definition_collection)
-                                    return wordclass_sub_loader.sub.get_definition_value()
-                                else
-                                    return wordclass_sub_loader.sub.get_definition_value()[0].phrases
+                        model: wordclass_determine_delegate()
+                        DelegateChooser {
+                            role: "repr"
+                            DelegateChoice {
+                                roleValue: DelegateEnum.Category
+                                delegate: category_delegate
                             }
-                            function determine_component () {
-                                if (wordclass_sub_loader.sub.has_categories())
-                                    return category_collection
-                                else {
-                                    definition_model = wordclass_sub_loader.sub.get_definition_value()
-                                    if (definition_model.length === 1 && !(definition_model[0].definition))
-                                        return phrase_collection
-                                    return definition_collection
-                                }
+                            DelegateChoice {
+                                roleValue: DelegateEnum.Definition
+                                delegate: definition_delegate
                             }
-
-                            Layout.fillWidth: true
-                            // sourceComponent: has_categories ? category_collection : definition_collection
-                            sourceComponent: determine_component()
-                            onSourceComponentChanged: {
-                                if (wordclass_sub_loader.sourceComponent)
-                                    wordclass_sub_loader.target_model = wordclass_sub_loader.determine_model()
+                            DelegateChoice {
+                                roleValue: DelegateEnum.Phrase
+                                delegate: phrase_delegate
                             }
                         }
                     }
@@ -81,35 +91,48 @@ Item {
         }
     }
 
+
     Component {
-        id: category_collection
-        ColumnLayout {
-            width: parent.width
-            spacing: 5
-            Repeater {
-                model: target_model.length
-                Rectangle {
-                    required property int index
-                    color: "#e6d525"
+        id: category_delegate
+        Rectangle {
+            required property category_t modelData
+            color: "#e6d525"
+            Layout.fillWidth: true
+            Layout.bottomMargin: 5
+            Layout.leftMargin: 5
+            Layout.rightMargin: 5
+            radius: 8
+            implicitHeight: childrenRect.height
+            implicitWidth: childrenRect.width
+            ColumnLayout {
+                width: parent.width
+                Label {
+                    text: modelData.category
                     Layout.fillWidth: true
-                    Layout.bottomMargin: 2.5
-                    Layout.leftMargin: 5
-                    Layout.rightMargin: 5
-                    radius: 8
-                    implicitHeight: childrenRect.height
-                    implicitWidth: childrenRect.width
-                    ColumnLayout {
-                        width: parent.width
-                        Label {
-                            Layout.fillWidth: true
-                            text: target_model[index].category
-                            padding: 9
+                    padding: 9
+                }
+                ColumnLayout {
+                    width: parent.width
+                    spacing: 5
+                    Repeater {
+                        function category_determine_delegate() {
+                            var children_delegate = modelData.determine_delegate()
+                            if (children_delegate === DelegateEnum.Definition)
+                                return modelData.definitions
+                            else if (children_delegate === DelegateEnum.Phrase)
+                                return modelData.shortcut_phrases()
                         }
-                        Loader {
-                            property var definition_models: target_model[index].definitions
-                            id: definition_loader
-                            Layout.fillWidth: true
-                            sourceComponent: definition_collection
+                        model: category_determine_delegate()
+                        DelegateChooser {
+                            role: "repr"
+                            DelegateChoice {
+                                roleValue: DelegateEnum.Definition
+                                delegate: definition_delegate
+                            }
+                            DelegateChoice {
+                                roleValue: DelegateEnum.Phrase
+                                delegate: phrase_delegate
+                            }
                         }
                     }
                 }
@@ -117,105 +140,63 @@ Item {
         }
     }
 
+
     Component {
-        id: definition_collection
-        ColumnLayout {
-            width: parent.width
-            spacing: 5
-            Repeater {
-                model: target_model.length
-                Rectangle {
-                    required property int index
-                    color: "#e88931"
+        id: definition_delegate
+        Rectangle {
+            required property definition_t modelData
+            color: "#e88931"
+            Layout.fillWidth: true
+            Layout.bottomMargin: 5
+            Layout.leftMargin: 5
+            Layout.rightMargin: 5
+            radius: 8
+            implicitHeight: childrenRect.height
+            implicitWidth: childrenRect.width
+            ColumnLayout {
+                width: parent.width
+                Label {
+                    text: modelData.definition
                     Layout.fillWidth: true
-                    Layout.bottomMargin: 2.5
-                    Layout.leftMargin: 5
-                    Layout.rightMargin: 5
-                    radius: 8
-                    implicitHeight: childrenRect.height
-                    implicitWidth: childrenRect.width
-                    ColumnLayout {
-                        width: parent.width
-                        Label {
-                            Layout.fillWidth: true
-                            text: target_model[index].definition
-                            padding: 9
-                        }
-                        // Loader {
-                        //     property var sentence_models: definition_models[index].sentences
-                        //     id: sentence_loader
-                        //     Layout.fillWidth: true
-                        //     Layout.preferredHeight: childrenRect.height + 10
-                        //     sourceComponent: sentence_collection
-                        // }
-                    }
+                    padding: 9
+                }
+                Repeater {
+                    model: modelData.phrases
+                    delegate: phrase_delegate
                 }
             }
         }
     }
 
     Component {
-        id: phrase_collection
-        ColumnLayout {
-            width: parent.width
-            spacing: 5
-            Repeater {
-                model: phrase_models.length
-                Rectangle {
-                    required property int index
-                    color: "#32a852"
+        id: phrase_delegate
+        Rectangle {
+            required property phrase_t modelData
+            color: "#32a854"
+            Layout.fillWidth: true
+            Layout.bottomMargin: 5
+            Layout.leftMargin: 5
+            Layout.rightMargin: 5
+            radius: 8
+            implicitHeight: childrenRect.height
+            implicitWidth: childrenRect.width
+            ColumnLayout {
+                Label {
                     Layout.fillWidth: true
-                    Layout.bottomMargin: 2.5
-                    Layout.leftMargin: 5
-                    Layout.rightMargin: 5
-                    radius: 8
-                    implicitHeight: childrenRect.height
-                    implicitWidth: childrenRect.width
-                    ColumnLayout {
-                        Label {
-                            Layout.fillWidth: true
-                            text: phrase_models[index].phrase
-                            font.bold: true
-                            padding: 9
-                        }
-                        Label {
-                            Layout.fillWidth: true
-                            text: phrase_models[index].def
-                            padding: 9
-                        }
-                    }
+                    text: modelData.phrase
+                    font.bold: true
+                    padding: 9
+                }
+                Label {
+                    Layout.fillWidth: true
+                    text: modelData.def
+                    padding: 9
                 }
             }
         }
     }
-
-    // Component {
-    //     id: sentence_collection
-    //     ColumnLayout {
-    //         width: parent.width
-    //         spacing: 5
-    //         Repeater {
-    //             model: sentence_models.length
-    //             Rectangle {
-    //                 required property int index
-    //                 color: "#32a852"
-    //                 Layout.fillWidth: true
-    //                 ColumnLayout {
-    //                     width: parent.width
-    //                     Text {
-    //                         text: sentence_models[index].eng
-    //                     }
-    //                     Text {
-    //                         text: sentence_models[index].chi
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
 
     StackLayout {
-        id: gglayout
         anchors.top: tabbar.bottom
         anchors.bottom: parent.bottom
         anchors.left: parent.left
@@ -226,12 +207,20 @@ Item {
             Layout.fillHeight: true
             Layout.fillWidth: true
             contentWidth: availableWidth
-            Loader {
-                property var target_model: wrapper.get().classes
-                id: wordclass_loader
+            ColumnLayout {
                 width: parent.width
-                sourceComponent: wordclass_collection
+                spacing: 5
+                Repeater {
+                    model: gae.get().classes
+                    delegate: wordclass_delegate
+                }
             }
+        }
+        ScrollView {
+            id: sentences_scroll_view
+            Layout.fillHeight: true
+            Layout.fillWidth: true
+            contentWidth: availableWidth
         }
     }
 }

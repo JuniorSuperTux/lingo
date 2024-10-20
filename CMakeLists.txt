@@ -17,26 +17,26 @@ qt_add_executable(applingo
 	src/parser.cpp
 	src/dict_types.cpp
 	src/xhtml_converter.cpp
+	src/collections.cpp
 	include/parser.hpp
 	include/dict_types.hpp
 	include/xhtml_converter.hpp
-)
-
-qt_add_qml_module(applingovocab
-	URI lingo.dict_types
-	VERSION 1.0
-	SOURCES
-		include/dict_types.hpp
-		src/dict_types.cpp
-	STATIC
+	include/collections.hpp
+	include/utils.hpp
 )
 
 qt_add_qml_module(applingo
 	URI lingo
-	VERSION 1.0
 	QML_FILES
 		qml/Main.qml
 		qml/Vocab.qml
+		qml/Collections.qml
+		qml/VocabList.qml
+	SOURCES
+		include/dict_types.hpp
+		include/collections.hpp
+		src/dict_types.cpp
+		src/collections.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -56,7 +56,6 @@ set_target_properties(applingo PROPERTIES
 
 target_link_libraries(applingo PRIVATE
 	Qt6::Quick
-	applingovocabplugin
 	tidy-static
 )
 
